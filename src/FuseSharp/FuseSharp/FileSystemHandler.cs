@@ -1,14 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-
 using Mono.Unix.Native;
 
 namespace FuseSharp
 {
+    using static OperationsFlags;
+
     public class FileSystemHandler : IDisposable
     {
         FileSystem _filesystem;
@@ -18,10 +20,17 @@ namespace FuseSharp
         private int _argsCount;
         private string _mountPoint;
 
-        public FileSystemHandler(FileSystem filesystem, String[] args)
+        public FileSystemHandler(FileSystem filesystem, String[] args, OperationsFlags specifiedFlags = None)
         {
             _filesystem = filesystem;
-            InitOperations();
+
+            var flags = specifiedFlags;
+            if (flags == None)
+            {
+                flags = OperationsFlagsFactory.GetOperationsFlags(filesystem.GetType());
+                flags = flags | Init;
+            }
+            InitOperations(flags);
             _opPtr = Operations.Allocate(_operations);
 
             _argsCount = args.Length;
@@ -30,46 +39,46 @@ namespace FuseSharp
             _mountPoint = args[_argsCount - 1];
         }
 
-        private void InitOperations()
+        private void InitOperations(OperationsFlags opsFlags)
         {
             _operations = new Operations();
             {
-                _operations.getattr = _OnGetPathStatus;
-                _operations.readlink = _OnReadSymbolicLink;
-                _operations.mknod = _OnCreateSpecialFile;
-                _operations.mkdir = _OnCreateDirectory;
-                _operations.unlink = _OnRemoveFile;
-                _operations.rmdir = _OnRemoveDirectory;
-                _operations.symlink = _OnCreateSymbolicLink;
-                _operations.rename = _OnRenamePath;
-                _operations.link = _OnCreateHardLink;
-                _operations.chmod = _OnChangePathPermissions;
-                _operations.chown = _OnChangePathOwner;
-                _operations.truncate = _OnTruncateFile;
-                _operations.utime = _OnChangePathTimes;
-                _operations.open = _OnOpenHandle;
-                _operations.read = _OnReadHandle;
-                _operations.write = _OnWriteHandle;
-                _operations.statfs = _OnGetFileSystemStatus;
-                _operations.flush = _OnFlushHandle;
-                _operations.release = _OnReleaseHandle;
-                _operations.fsync = _OnSynchronizeHandle;
-                _operations.setxattr = _OnSetPathExtendedAttribute;
-                _operations.getxattr = _OnGetPathExtendedAttribute;
-                _operations.listxattr = _OnListPathExtendedAttributes;
-                _operations.removexattr = _OnRemovePathExtendedAttribute;
-                _operations.opendir = _OnOpenDirectory;
-                _operations.readdir = _OnReadDirectory;
-                _operations.releasedir = _OnReleaseDirectory;
-                _operations.fsyncdir = _OnSynchronizeDirectory;
-                _operations.init = _OnInit;
-                _operations.destroy = _OnDestroy;
-                _operations.access = _OnAccessPath;
-                _operations.create = _OnCreateHandle;
-                _operations.ftruncate = _OnTruncateHandle;
-                _operations.fgetattr = _OnGetHandleStatus;
-                _operations.@lock = _OnLockHandle;
-                _operations.bmap = _OnMapPathLogicalToPhysicalIndex;
+                if ((opsFlags & GetPathStatus) != 0) { _operations.getattr = _OnGetPathStatus; } else { _operations.getattr = null; }
+                if ((opsFlags & ReadSymbolicLink) != 0) { _operations.readlink = _OnReadSymbolicLink; } else { _operations.readlink = null; }
+                if ((opsFlags & CreateSpecialFile) != 0) { _operations.mknod = _OnCreateSpecialFile; } else { _operations.mknod = null; }
+                if ((opsFlags & CreateDirectory) != 0) { _operations.mkdir = _OnCreateDirectory; } else { _operations.mkdir = null; }
+                if ((opsFlags & RemoveFile) != 0) { _operations.unlink = _OnRemoveFile; } else { _operations.unlink = null; }
+                if ((opsFlags & RemoveDirectory) != 0) { _operations.rmdir = _OnRemoveDirectory; } else { _operations.rmdir = null; }
+                if ((opsFlags & CreateSymbolicLink) != 0) { _operations.symlink = _OnCreateSymbolicLink; } else { _operations.symlink = null; }
+                if ((opsFlags & RenamePath) != 0) { _operations.rename = _OnRenamePath; } else { _operations.rename = null; }
+                if ((opsFlags & CreateHardLink) != 0) { _operations.link = _OnCreateHardLink; } else { _operations.link = null; }
+                if ((opsFlags & ChangePathPermissions) != 0) { _operations.chmod = _OnChangePathPermissions; } else { _operations.chmod = null; }
+                if ((opsFlags & ChangePathOwner) != 0) { _operations.chown = _OnChangePathOwner; } else { _operations.chown = null; }
+                if ((opsFlags & TruncateFile) != 0) { _operations.truncate = _OnTruncateFile; } else { _operations.truncate = null; }
+                if ((opsFlags & ChangePathTimes) != 0) { _operations.utime = _OnChangePathTimes; } else { _operations.utime = null; }
+                if ((opsFlags & OpenHandle) != 0) { _operations.open = _OnOpenHandle; } else { _operations.open = null; }
+                if ((opsFlags & ReadHandle) != 0) { _operations.read = _OnReadHandle; } else { _operations.read = null; }
+                if ((opsFlags & WriteHandle) != 0) { _operations.write = _OnWriteHandle; } else { _operations.write = null; }
+                if ((opsFlags & GetFileSystemStatus) != 0) { _operations.statfs = _OnGetFileSystemStatus; } else { _operations.statfs = null; }
+                if ((opsFlags & FlushHandle) != 0) { _operations.flush = _OnFlushHandle; } else { _operations.flush = null; }
+                if ((opsFlags & ReleaseHandle) != 0) { _operations.release = _OnReleaseHandle; } else { _operations.release = null; }
+                if ((opsFlags & SynchronizeHandle) != 0) { _operations.fsync = _OnSynchronizeHandle; } else { _operations.fsync = null; }
+                if ((opsFlags & SetPathExtendedAttribute) != 0) { _operations.setxattr = _OnSetPathExtendedAttribute; } else { _operations.setxattr = null; }
+                if ((opsFlags & GetPathExtendedAttribute) != 0) { _operations.getxattr = _OnGetPathExtendedAttribute; } else { _operations.getxattr = null; }
+                if ((opsFlags & ListPathExtendedAttributes) != 0) { _operations.listxattr = _OnListPathExtendedAttributes; } else { _operations.listxattr = null; }
+                if ((opsFlags & RemovePathExtendedAttribute) != 0) { _operations.removexattr = _OnRemovePathExtendedAttribute; } else { _operations.removexattr = null; }
+                if ((opsFlags & OpenDirectory) != 0) { _operations.opendir = _OnOpenDirectory; } else { _operations.opendir = null; }
+                if ((opsFlags & ReadDirectory) != 0) { _operations.readdir = _OnReadDirectory; } else { _operations.readdir = null; }
+                if ((opsFlags & ReleaseDirectory) != 0) { _operations.releasedir = _OnReleaseDirectory; } else { _operations.releasedir = null; }
+                if ((opsFlags & SynchronizeDirectory) != 0) { _operations.fsyncdir = _OnSynchronizeDirectory; } else { _operations.fsyncdir = null; }
+                if ((opsFlags & Init) != 0) { _operations.init = _OnInit; } else { _operations.init = null; }
+                if ((opsFlags & Destroy) != 0) { _operations.destroy = _OnDestroy; } else { _operations.destroy = null; }
+                if ((opsFlags & AccessPath) != 0) { _operations.access = _OnAccessPath; } else { _operations.access = null; }
+                if ((opsFlags & CreateHandle) != 0) { _operations.create = _OnCreateHandle; } else { _operations.create = null; }
+                if ((opsFlags & TruncateHandle) != 0) { _operations.ftruncate = _OnTruncateHandle; } else { _operations.ftruncate = null; }
+                if ((opsFlags & GetHandleStatus) != 0) { _operations.fgetattr = _OnGetHandleStatus; } else { _operations.fgetattr = null; }
+                if ((opsFlags & LockHandle) != 0) { _operations.@lock = _OnLockHandle; } else { _operations.@lock = null; }
+                if ((opsFlags & MapPathLogicalToPhysicalIndex) != 0) { _operations.bmap = _OnMapPathLogicalToPhysicalIndex; } else { _operations.bmap = null; }
             };
         }
 
@@ -106,6 +115,8 @@ namespace FuseSharp
 
         private int _OnGetPathStatus(string path, IntPtr stat)
         {
+            Trace.WriteLine($"_OnGetPathStatus {path} {stat}");
+
             Errno errno;
             try
             {
@@ -125,6 +136,8 @@ namespace FuseSharp
 
         private int _OnReadSymbolicLink(string path, IntPtr buf, ulong bufsize)
         {
+            Trace.WriteLine("_OnReadSymbolicLink");
+
             Errno errno;
             try
             {
@@ -161,6 +174,8 @@ namespace FuseSharp
 
         private int _OnCreateSpecialFile(string path, uint perms, ulong dev)
         {
+            Trace.WriteLine("_OnCreateSpecialFile");
+
             Errno errno;
             try
             {
@@ -177,6 +192,8 @@ namespace FuseSharp
 
         private int _OnCreateDirectory(string path, uint mode)
         {
+            Trace.WriteLine("_OnCreateDirectory");
+
             Errno errno;
             try
             {
@@ -193,6 +210,8 @@ namespace FuseSharp
 
         private int _OnRemoveFile(string path)
         {
+            Trace.WriteLine("_OnRemoveFile");
+
             Errno errno;
             try
             {
@@ -208,6 +227,8 @@ namespace FuseSharp
 
         private int _OnRemoveDirectory(string path)
         {
+            Trace.WriteLine("_OnRemoveDirectory");
+
             Errno errno;
             try
             {
@@ -223,6 +244,8 @@ namespace FuseSharp
 
         private int _OnCreateSymbolicLink(string oldpath, string newpath)
         {
+            Trace.WriteLine("_OnCreateSymbolicLink");
+
             Errno errno;
             try
             {
@@ -238,6 +261,8 @@ namespace FuseSharp
 
         private int _OnRenamePath(string oldpath, string newpath)
         {
+            Trace.WriteLine("_OnRenamePath");
+
             Errno errno;
             try
             {
@@ -253,6 +278,8 @@ namespace FuseSharp
 
         private int _OnCreateHardLink(string oldpath, string newpath)
         {
+            Trace.WriteLine("_OnCreateHardLink");
+
             Errno errno;
             try
             {
@@ -268,6 +295,8 @@ namespace FuseSharp
 
         private int _OnChangePathPermissions(string path, uint mode)
         {
+            Trace.WriteLine("_OnChangePathPermissions");
+
             Errno errno;
             try
             {
@@ -284,6 +313,8 @@ namespace FuseSharp
 
         private int _OnChangePathOwner(string path, long owner, long group)
         {
+            Trace.WriteLine("_OnChangePathOwner");
+
             Errno errno;
             try
             {
@@ -299,6 +330,8 @@ namespace FuseSharp
 
         private int _OnTruncateFile(string path, long length)
         {
+            Trace.WriteLine("_OnTruncateFile");
+
             Errno errno;
             try
             {
@@ -314,6 +347,8 @@ namespace FuseSharp
 
         private int _OnChangePathTimes(string path, IntPtr buf)
         {
+            Trace.WriteLine("_OnChangePathTimes");
+
             Errno errno;
             try
             {
@@ -333,6 +368,8 @@ namespace FuseSharp
 
         private int _OnOpenHandle(string path, IntPtr fi)
         {
+            Trace.WriteLine("_OnOpenHandle");
+
             Errno errno;
             try
             {
@@ -389,8 +426,7 @@ namespace FuseSharp
             {
                 PathInfo info = new PathInfo();
                 PathInfo.CopyFromPtr(fi, info);
-                errno = _filesystem.OnWriteHandle
-                    (path, info, buf, offset, out bytesRead);
+                errno = _filesystem.OnWriteHandle(path, info, buf, offset, out bytesRead);
 
                 if (errno == 0)
                     PathInfo.CopyToPtr(info, fi);
@@ -406,6 +442,8 @@ namespace FuseSharp
 
         private int _OnGetFileSystemStatus(string path, IntPtr buf)
         {
+            Trace.WriteLine("_OnGetFileSystemStatus");
+
             Errno errno;
             try
             {
@@ -425,6 +463,8 @@ namespace FuseSharp
 
         private int _OnFlushHandle(string path, IntPtr fi)
         {
+            Trace.WriteLine("_OnFlushHandle");
+
             Errno errno;
             try
             {
@@ -443,6 +483,8 @@ namespace FuseSharp
 
         private int _OnReleaseHandle(string path, IntPtr fi)
         {
+            Trace.WriteLine("_OnReleaseHandle");
+
             Errno errno;
             try
             {
@@ -545,8 +587,9 @@ namespace FuseSharp
                         for (int i = 0; i < names.Length; ++i)
                         {
                             int b = Encoding.UTF8.GetBytes(names[i], 0, names[i].Length,
-                                    list, dest);
-                            list[dest + b] = (byte)'\0';
+                                list, dest);
+                            list[dest + b] = (byte)
+                            '\0';
                             dest += (b + 1);
                         }
                         bytesWritten = dest;
@@ -566,6 +609,8 @@ namespace FuseSharp
 
         private int _OnRemovePathExtendedAttribute(string path, string name)
         {
+            Trace.WriteLine("_OnRemovePathExtendedAttribute");
+
             Errno errno;
             try
             {
@@ -581,6 +626,8 @@ namespace FuseSharp
 
         private int _OnOpenDirectory(string path, IntPtr fi)
         {
+            Trace.WriteLine("_OnOpenDirectory");
+
             Errno errno;
             try
             {
@@ -606,7 +653,7 @@ namespace FuseSharp
         private Random directoryKeys = new Random();
 
         private int _OnReadDirectory(string path, IntPtr buf, IntPtr filler,
-                long offset, IntPtr fi, IntPtr stbuf)
+            long offset, IntPtr fi, IntPtr stbuf)
         {
             Errno errno = 0;
             try
@@ -762,6 +809,8 @@ namespace FuseSharp
 
         private int _OnReleaseDirectory(string path, IntPtr fi)
         {
+            Trace.WriteLine("_OnReleaseDirectory");
+
             Errno errno;
             try
             {
@@ -803,6 +852,8 @@ namespace FuseSharp
 
         private IntPtr _OnInit(IntPtr conn)
         {
+            Trace.WriteLine("_OnInit");
+
             try
             {
                 _filesystem.OnInit(new ConnectionInfo(conn));
@@ -817,6 +868,8 @@ namespace FuseSharp
 
         private void _OnDestroy(IntPtr opPtr)
         {
+            Trace.WriteLine("_OnDestroy");
+
             Debug.Assert(opPtr == _opPtr);
 
             Dispose();
@@ -824,6 +877,9 @@ namespace FuseSharp
 
         private int _OnAccessPath(string path, int mode)
         {
+            Trace.WriteLine("_OnAccessPath");
+
+            Trace.WriteLine($"_OnAccessPath {path} {mode}");
             Errno errno;
             try
             {
@@ -840,6 +896,8 @@ namespace FuseSharp
 
         private int _OnCreateHandle(string path, uint mode, IntPtr fi)
         {
+            Trace.WriteLine("_OnCreateHandle");
+
             Errno errno;
             try
             {
@@ -860,6 +918,8 @@ namespace FuseSharp
 
         private int _OnTruncateHandle(string path, long length, IntPtr fi)
         {
+            Trace.WriteLine("_OnTruncateHandle");
+
             Errno errno;
             try
             {
@@ -879,6 +939,8 @@ namespace FuseSharp
 
         private int _OnGetHandleStatus(string path, IntPtr buf, IntPtr fi)
         {
+            Trace.WriteLine("_OnGetHandleStatus");
+
             Errno errno;
             try
             {
