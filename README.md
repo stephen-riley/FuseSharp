@@ -47,11 +47,12 @@ The project is **not** available in NuGet for now. In order to start using it, y
 
 1. Clone this repository.
 2. Install dependencies:
-     * ``glib`` 2.56.1. It is available for macOS users through ``brew``.
+     * ``glib``. It is available for macOS users through ``brew``.
      * .NET Core SDK.
      * Apple Developer Tools.
 3. Compile and install the adaptor library:
-     * Executing the `buildandcopy` script located at `/src/Adaptor`
+     * Update the `buildandcopy` script located at `/src/Adaptor` with the `glib` version you have
+     * Executing `buildandcopy`
 4. Compile the FuseSharp library and the example application:
      * Executing `dotnet build` at `/src/FuseSharp`, or oppening the FuseSharp solution with your IDE of choice and building it.
 
