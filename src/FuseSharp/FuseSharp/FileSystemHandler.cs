@@ -655,6 +655,8 @@ namespace FuseSharp
         private int _OnReadDirectory(string path, IntPtr buf, IntPtr filler,
             long offset, IntPtr fi, IntPtr stbuf)
         {
+            Trace.WriteLine($"_OnReadDirectory {path}");
+
             Errno errno = 0;
             try
             {
