@@ -1,0 +1,38 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+my( $dir ) = $0 =~ m{^(.*)/};
+chdir $dir;
+
+unless( osxfuse_installed() ) {
+    die "OSXFUSE not installed.  Please install with \n\n\tbrew install osxfuse\n\nand re-run.\n";
+}
+
+my $glib_ver = find_glib_version();
+unless( $glib_ver ) {
+    die "No glib found.  Please install with\n\n\tbrew install glib\n\nand re-run.\n";
+}
+
+`gcc -x c -c -fPIC -o definitions.o -D_FILE_OFFSET_BITS=64 -I /usr/local/include/osxfuse/ -I /usr/local/Cellar/glib/$glib_ver/include/glib-2.0/ -I /usr/local/Cellar/glib/$glib_ver/lib/glib-2.0/include/ definitions.c`;
+`gcc -x c -c -fPIC -o adaptor.o -D_FILE_OFFSET_BITS=64 -I /usr/local/include/osxfuse/ -I /usr/local/Cellar/glib/$glib_ver/include/glib-2.0/ -I /usr/local/Cellar/glib/$glib_ver/lib/glib-2.0/include/ adaptor.c`;
+`gcc -shared -fPIC -o libAdaptor.dylib -L /usr/local/lib/ -losxfuse definitions.o adaptor.o -lc`;
+`cp libAdaptor.dylib /usr/local/lib/libAdaptor.dylib`;
+
+print "\nlibAdaptor.dylib built and installed.\n";
+
+sub find_glib_version {
+    my @files = `find /usr/local/Cellar -name glib`;
+    foreach my $f ( @files ) {
+        return $1 if $f =~ m{glib/(.*?)/};
+    }
+}
+
+sub osxfuse_installed {
+    my @files = `find /usr/local/include -name osxfuse`;
+
+    foreach my $f ( @files ) {
+        return 1 if $f;
+    }
+}
