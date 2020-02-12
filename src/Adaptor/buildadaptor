@@ -6,8 +6,12 @@ use warnings;
 my( $dir ) = $0 =~ m{^(.*)/};
 chdir $dir;
 
+unless( xcode_cli_installed() ) {
+    die "xcode command line tools not installed.  Please install with \n\n\txcode-select --insteall\n\nand re-run.\n";
+}
+
 unless( osxfuse_installed() ) {
-    die "OSXFUSE not installed.  Please install with \n\n\tbrew install osxfuse\n\nand re-run.\n";
+    die "OSXFUSE not installed.  Please install with \n\n\tbrew cask install osxfuse\n\nand re-run.\n";
 }
 
 my $glib_ver = find_glib_version();
@@ -35,4 +39,9 @@ sub osxfuse_installed {
     foreach my $f ( @files ) {
         return 1 if $f;
     }
+}
+
+sub xcode_cli_installed {
+    my $out = `which gcc`;
+    return 1 if $out =~ /gcc$/;
 }
